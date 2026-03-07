@@ -1,412 +1,220 @@
-// lib/core/services/storage_service.dart
-
-import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../config/app_constants.dart';
 
+/// Centralized local storage service using SharedPreferences.
+/// Battery Optimized:
+/// - Single SharedPreferences instance cached after first load.
+/// - No repeated disk reads - instance reused across all calls.
+/// - Writes are async and non-blocking.
+/// - Only stores primitive data types to minimize storage footprint.
 class StorageService {
   StorageService._internal();
-
   static final StorageService _instance = StorageService._internal();
-
-  factory StorageService() {
-    return _instance;
-  }
-
-  static StorageService get instance => _instance;
+  factory StorageService() => _instance;
 
   SharedPreferences? _prefs;
-  bool _isInitialized = false;
 
-  bool get isInitialized => _isInitialized;
-
-  // Storage Keys
-  static const String keyThemeMode = 'theme_mode';
-  static const String keySoundEnabled = 'sound_enabled';
-  static const String keyMasterVolume = 'master_volume';
-  static const String keyIsLoggedIn = 'is_logged_in';
-  static const String keyUserId = 'user_id';
-  static const String keyUserName = 'user_name';
-  static const String keyUserEmail = 'user_email';
-  static const String keyUserAvatar = 'user_avatar';
-  static const String keyTotalFocusMinutes = 'total_focus_minutes';
-  static const String keyTotalSessions = 'total_sessions';
-  static const String keyCurrentStreak = 'current_streak';
-  static const String keyBestStreak = 'best_streak';
-  static const String keyLastSessionDate = 'last_session_date';
-  static const String keyDefaultFocusDuration = 'default_focus_duration';
-  static const String keyBlockedApps = 'blocked_apps';
-  static const String keyIsFirstLaunch = 'is_first_launch';
-  static const String keyUserRank = 'user_rank';
-  static const String keyPreviousRank = 'previous_rank';
-  static const String keyLastSyncTimestamp = 'last_sync_timestamp';
-
+  /// Initialize and cache the SharedPreferences instance.
   Future<void> initialize() async {
-    if (_isInitialized) {
-      return;
-    }
-
-    try {
-      _prefs = await SharedPreferences.getInstance();
-      _isInitialized = true;
-      debugPrint('StorageService: Initialized successfully.');
-    } catch (e) {
-      debugPrint('StorageService: Error during initialization - $e');
-      _isInitialized = false;
-    }
+    _prefs ??= await SharedPreferences.getInstance();
   }
 
-  // -------------------------------------------------------
-  // String Operations
-  // -------------------------------------------------------
-
-  Future<bool> setString(String key, String value) async {
-    try {
-      if (_prefs == null) {
-        await initialize();
-      }
-      return await _prefs!.setString(key, value);
-    } catch (e) {
-      debugPrint('StorageService: Error setting string $key - $e');
-      return false;
-    }
+  /// Ensure prefs is available before any operation.
+  Future<SharedPreferences> _getPrefs() async {
+    _prefs ??= await SharedPreferences.getInstance();
+    return _prefs!;
   }
 
-  String getString(String key, {String defaultValue = ''}) {
-    try {
-      if (_prefs == null) {
-        return defaultValue;
-      }
-      return _prefs!.getString(key) ?? defaultValue;
-    } catch (e) {
-      debugPrint('StorageService: Error getting string $key - $e');
-      return defaultValue;
-    }
+  // --- String Operations ---
+
+  Future<void> setString(String key, String value) async {
+    final SharedPreferences prefs = await _getPrefs();
+    await prefs.setString(key, value);
   }
 
-  // -------------------------------------------------------
-  // Integer Operations
-  // -------------------------------------------------------
-
-  Future<bool> setInt(String key, int value) async {
-    try {
-      if (_prefs == null) {
-        await initialize();
-      }
-      return await _prefs!.setInt(key, value);
-    } catch (e) {
-      debugPrint('StorageService: Error setting int $key - $e');
-      return false;
-    }
+  Future<String?> getString(String key) async {
+    final SharedPreferences prefs = await _getPrefs();
+    return prefs.getString(key);
   }
 
-  int getInt(String key, {int defaultValue = 0}) {
-    try {
-      if (_prefs == null) {
-        return defaultValue;
-      }
-      return _prefs!.getInt(key) ?? defaultValue;
-    } catch (e) {
-      debugPrint('StorageService: Error getting int $key - $e');
-      return defaultValue;
-    }
+  // --- Int Operations ---
+
+  Future<void> setInt(String key, int value) async {
+    final SharedPreferences prefs = await _getPrefs();
+    await prefs.setInt(key, value);
   }
 
-  // -------------------------------------------------------
-  // Double Operations
-  // -------------------------------------------------------
-
-  Future<bool> setDouble(String key, double value) async {
-    try {
-      if (_prefs == null) {
-        await initialize();
-      }
-      return await _prefs!.setDouble(key, value);
-    } catch (e) {
-      debugPrint('StorageService: Error setting double $key - $e');
-      return false;
-    }
+  Future<int> getInt(String key, {int defaultValue = 0}) async {
+    final SharedPreferences prefs = await _getPrefs();
+    return prefs.getInt(key) ?? defaultValue;
   }
 
-  double getDouble(String key, {double defaultValue = 0.0}) {
-    try {
-      if (_prefs == null) {
-        return defaultValue;
-      }
-      return _prefs!.getDouble(key) ?? defaultValue;
-    } catch (e) {
-      debugPrint('StorageService: Error getting double $key - $e');
-      return defaultValue;
-    }
+  // --- Double Operations ---
+
+  Future<void> setDouble(String key, double value) async {
+    final SharedPreferences prefs = await _getPrefs();
+    await prefs.setDouble(key, value);
   }
 
-  // -------------------------------------------------------
-  // Boolean Operations
-  // -------------------------------------------------------
-
-  Future<bool> setBool(String key, bool value) async {
-    try {
-      if (_prefs == null) {
-        await initialize();
-      }
-      return await _prefs!.setBool(key, value);
-    } catch (e) {
-      debugPrint('StorageService: Error setting bool $key - $e');
-      return false;
-    }
+  Future<double> getDouble(String key, {double defaultValue = 0.0}) async {
+    final SharedPreferences prefs = await _getPrefs();
+    return prefs.getDouble(key) ?? defaultValue;
   }
 
-  bool getBool(String key, {bool defaultValue = false}) {
-    try {
-      if (_prefs == null) {
-        return defaultValue;
-      }
-      return _prefs!.getBool(key) ?? defaultValue;
-    } catch (e) {
-      debugPrint('StorageService: Error getting bool $key - $e');
-      return defaultValue;
-    }
+  // --- Bool Operations ---
+
+  Future<void> setBool(String key, bool value) async {
+    final SharedPreferences prefs = await _getPrefs();
+    await prefs.setBool(key, value);
   }
 
-  // -------------------------------------------------------
-  // String List Operations
-  // -------------------------------------------------------
-
-  Future<bool> setStringList(String key, List<String> value) async {
-    try {
-      if (_prefs == null) {
-        await initialize();
-      }
-      return await _prefs!.setStringList(key, value);
-    } catch (e) {
-      debugPrint('StorageService: Error setting string list $key - $e');
-      return false;
-    }
+  Future<bool> getBool(String key, {bool defaultValue = false}) async {
+    final SharedPreferences prefs = await _getPrefs();
+    return prefs.getBool(key) ?? defaultValue;
   }
 
-  List<String> getStringList(String key, {List<String>? defaultValue}) {
-    try {
-      if (_prefs == null) {
-        return defaultValue ?? <String>[];
-      }
-      return _prefs!.getStringList(key) ?? defaultValue ?? <String>[];
-    } catch (e) {
-      debugPrint('StorageService: Error getting string list $key - $e');
-      return defaultValue ?? <String>[];
-    }
+  // --- StringList Operations ---
+
+  Future<void> setStringList(String key, List<String> value) async {
+    final SharedPreferences prefs = await _getPrefs();
+    await prefs.setStringList(key, value);
   }
 
-  // -------------------------------------------------------
-  // Convenience Getters and Setters
-  // -------------------------------------------------------
-
-  // Theme
-  Future<bool> saveThemeMode(String mode) async {
-    return await setString(keyThemeMode, mode);
+  Future<List<String>> getStringList(String key) async {
+    final SharedPreferences prefs = await _getPrefs();
+    return prefs.getStringList(key) ?? <String>[];
   }
 
-  String getThemeMode() {
-    return getString(keyThemeMode, defaultValue: 'system');
+  // --- Remove and Clear ---
+
+  Future<void> remove(String key) async {
+    final SharedPreferences prefs = await _getPrefs();
+    await prefs.remove(key);
   }
 
-  // Sound
-  Future<bool> saveSoundEnabled(bool enabled) async {
-    return await setBool(keySoundEnabled, enabled);
+  Future<void> clearAll() async {
+    final SharedPreferences prefs = await _getPrefs();
+    await prefs.clear();
   }
 
-  bool getSoundEnabled() {
-    return getBool(keySoundEnabled, defaultValue: true);
+  Future<bool> containsKey(String key) async {
+    final SharedPreferences prefs = await _getPrefs();
+    return prefs.containsKey(key);
   }
 
-  // Volume
-  Future<bool> saveMasterVolume(double volume) async {
-    return await setDouble(keyMasterVolume, volume);
-  }
+  // --- User Data Convenience Methods ---
 
-  double getMasterVolume() {
-    return getDouble(keyMasterVolume, defaultValue: 1.0);
-  }
-
-  // Auth State
-  Future<bool> saveLoginState(bool isLoggedIn) async {
-    return await setBool(keyIsLoggedIn, isLoggedIn);
-  }
-
-  bool getLoginState() {
-    return getBool(keyIsLoggedIn, defaultValue: false);
-  }
-
-  // User Info
-  Future<void> saveUserInfo({
+  Future<void> saveUserData({
     required String userId,
     required String userName,
     required String userEmail,
-    String userAvatar = '',
+    String? userPhoto,
   }) async {
-    await setString(keyUserId, userId);
-    await setString(keyUserName, userName);
-    await setString(keyUserEmail, userEmail);
-    await setString(keyUserAvatar, userAvatar);
-    await saveLoginState(true);
+    await setString(AppConstants.prefUserId, userId);
+    await setString(AppConstants.prefUserName, userName);
+    await setString(AppConstants.prefUserEmail, userEmail);
+    if (userPhoto != null) {
+      await setString(AppConstants.prefUserPhoto, userPhoto);
+    }
   }
 
-  Map<String, String> getUserInfo() {
-    return <String, String>{
-      'userId': getString(keyUserId),
-      'userName': getString(keyUserName),
-      'userEmail': getString(keyUserEmail),
-      'userAvatar': getString(keyUserAvatar),
+  Future<Map<String, String?>> getUserData() async {
+    return {
+      'userId': await getString(AppConstants.prefUserId),
+      'userName': await getString(AppConstants.prefUserName),
+      'userEmail': await getString(AppConstants.prefUserEmail),
+      'userPhoto': await getString(AppConstants.prefUserPhoto),
     };
-  }
-
-  // Focus Stats
-  Future<void> saveFocusStats({
-    required int totalMinutes,
-    required int totalSessions,
-    required int currentStreak,
-    required int bestStreak,
-  }) async {
-    await setInt(keyTotalFocusMinutes, totalMinutes);
-    await setInt(keyTotalSessions, totalSessions);
-    await setInt(keyCurrentStreak, currentStreak);
-    await setInt(keyBestStreak, bestStreak);
-    await setString(keyLastSessionDate, DateTime.now().toIso8601String());
-  }
-
-  Map<String, int> getFocusStats() {
-    return <String, int>{
-      'totalMinutes': getInt(keyTotalFocusMinutes),
-      'totalSessions': getInt(keyTotalSessions),
-      'currentStreak': getInt(keyCurrentStreak),
-      'bestStreak': getInt(keyBestStreak),
-    };
-  }
-
-  Future<bool> addFocusMinutes(int minutes) async {
-    final int current = getInt(keyTotalFocusMinutes);
-    return await setInt(keyTotalFocusMinutes, current + minutes);
-  }
-
-  Future<bool> incrementSessions() async {
-    final int current = getInt(keyTotalSessions);
-    return await setInt(keyTotalSessions, current + 1);
-  }
-
-  // Default Focus Duration in minutes
-  Future<bool> saveDefaultFocusDuration(int minutes) async {
-    return await setInt(keyDefaultFocusDuration, minutes);
-  }
-
-  int getDefaultFocusDuration() {
-    return getInt(keyDefaultFocusDuration, defaultValue: 25);
-  }
-
-  // Blocked Apps
-  Future<bool> saveBlockedApps(List<String> packageNames) async {
-    return await setStringList(keyBlockedApps, packageNames);
-  }
-
-  List<String> getBlockedApps() {
-    return getStringList(keyBlockedApps);
-  }
-
-  // First Launch
-  Future<bool> setFirstLaunchDone() async {
-    return await setBool(keyIsFirstLaunch, true);
-  }
-
-  bool isFirstLaunch() {
-    return !getBool(keyIsFirstLaunch, defaultValue: false);
-  }
-
-  // Rank
-  Future<void> saveRank(int newRank) async {
-    final int currentRank = getInt(keyUserRank, defaultValue: 0);
-    await setInt(keyPreviousRank, currentRank);
-    await setInt(keyUserRank, newRank);
-  }
-
-  int getUserRank() {
-    return getInt(keyUserRank, defaultValue: 0);
-  }
-
-  int getPreviousRank() {
-    return getInt(keyPreviousRank, defaultValue: 0);
-  }
-
-  bool hasRankImproved() {
-    final int current = getUserRank();
-    final int previous = getPreviousRank();
-    if (current == 0 || previous == 0) {
-      return false;
-    }
-    return current < previous;
-  }
-
-  // Sync Timestamp
-  Future<bool> saveLastSyncTimestamp() async {
-    return await setString(
-      keyLastSyncTimestamp,
-      DateTime.now().toIso8601String(),
-    );
-  }
-
-  DateTime? getLastSyncTimestamp() {
-    final String timestamp = getString(keyLastSyncTimestamp);
-    if (timestamp.isEmpty) {
-      return null;
-    }
-    try {
-      return DateTime.parse(timestamp);
-    } catch (e) {
-      return null;
-    }
-  }
-
-  // -------------------------------------------------------
-  // Delete and Clear Operations
-  // -------------------------------------------------------
-
-  Future<bool> remove(String key) async {
-    try {
-      if (_prefs == null) {
-        await initialize();
-      }
-      return await _prefs!.remove(key);
-    } catch (e) {
-      debugPrint('StorageService: Error removing $key - $e');
-      return false;
-    }
   }
 
   Future<void> clearUserData() async {
-    try {
-      await remove(keyUserId);
-      await remove(keyUserName);
-      await remove(keyUserEmail);
-      await remove(keyUserAvatar);
-      await remove(keyIsLoggedIn);
-      await remove(keyTotalFocusMinutes);
-      await remove(keyTotalSessions);
-      await remove(keyCurrentStreak);
-      await remove(keyBestStreak);
-      await remove(keyLastSessionDate);
-      await remove(keyUserRank);
-      await remove(keyPreviousRank);
-      debugPrint('StorageService: User data cleared.');
-    } catch (e) {
-      debugPrint('StorageService: Error clearing user data - $e');
+    await remove(AppConstants.prefUserId);
+    await remove(AppConstants.prefUserName);
+    await remove(AppConstants.prefUserEmail);
+    await remove(AppConstants.prefUserPhoto);
+  }
+
+  Future<bool> isLoggedIn() async {
+    final String? userId = await getString(AppConstants.prefUserId);
+    return userId != null && userId.isNotEmpty;
+  }
+
+  // --- Focus Stats Convenience Methods ---
+
+  Future<void> addFocusTime(int seconds) async {
+    final int current = await getInt(AppConstants.prefTotalFocusTime);
+    await setInt(AppConstants.prefTotalFocusTime, current + seconds);
+  }
+
+  Future<int> getTotalFocusTime() async {
+    return await getInt(AppConstants.prefTotalFocusTime);
+  }
+
+  Future<void> incrementSessionCount() async {
+    final int current = await getInt(AppConstants.prefTotalSessions);
+    await setInt(AppConstants.prefTotalSessions, current + 1);
+  }
+
+  Future<int> getTotalSessions() async {
+    return await getInt(AppConstants.prefTotalSessions);
+  }
+
+  // --- Streak Management ---
+
+  Future<void> updateStreak() async {
+    final String? lastDateStr = await getString(
+      AppConstants.prefLastSessionDate,
+    );
+    final String todayStr = DateTime.now().toIso8601String().split('T')[0];
+
+    if (lastDateStr == null) {
+      await setInt(AppConstants.prefCurrentStreak, 1);
+      await setString(AppConstants.prefLastSessionDate, todayStr);
+      await _updateBestStreak(1);
+      return;
+    }
+
+    if (lastDateStr == todayStr) {
+      return;
+    }
+
+    final DateTime lastDate = DateTime.parse(lastDateStr);
+    final DateTime today = DateTime.now();
+    final int daysDifference = DateTime(
+      today.year,
+      today.month,
+      today.day,
+    ).difference(DateTime(
+      lastDate.year,
+      lastDate.month,
+      lastDate.day,
+    )).inDays;
+
+    int currentStreak = await getInt(AppConstants.prefCurrentStreak);
+
+    if (daysDifference == 1) {
+      currentStreak += 1;
+    } else {
+      currentStreak = 1;
+    }
+
+    await setInt(AppConstants.prefCurrentStreak, currentStreak);
+    await setString(AppConstants.prefLastSessionDate, todayStr);
+    await _updateBestStreak(currentStreak);
+  }
+
+  Future<void> _updateBestStreak(int currentStreak) async {
+    final int bestStreak = await getInt(AppConstants.prefBestStreak);
+    if (currentStreak > bestStreak) {
+      await setInt(AppConstants.prefBestStreak, currentStreak);
     }
   }
 
-  Future<bool> clearAll() async {
-    try {
-      if (_prefs == null) {
-        await initialize();
-      }
-      return await _prefs!.clear();
-    } catch (e) {
-      debugPrint('StorageService: Error clearing all data - $e');
-      return false;
-    }
+  Future<int> getCurrentStreak() async {
+    return await getInt(AppConstants.prefCurrentStreak);
+  }
+
+  Future<int> getBestStreak() async {
+    return await getInt(AppConstants.prefBestStreak);
   }
 }
