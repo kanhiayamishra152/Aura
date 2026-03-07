@@ -1,237 +1,265 @@
-// lib/core/services/audio_service.dart
-
 import 'package:audioplayers/audioplayers.dart';
-import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../config/app_constants.dart';
 
-enum AppSound {
-  appStartup,
-  buttonClick,
-  buttonHover,
-  timerStart,
-  timerTick,
-  timerPause,
-  timerResume,
-  timerComplete,
-  alarmRing,
-  alarmSnooze,
-  rankUp,
-  notification,
-  tabSwitch,
-  error,
-  success,
-  focusModeOn,
-  focusModeOff,
-}
-
+/// Centralized Audio Service for the entire application.
+/// Battery Optimized:
+/// - Uses a single AudioPlayer instance instead of creating new ones per sound.
+/// - Preloads nothing into memory - plays directly from asset path.
+/// - Releases resources immediately after playback completes.
+/// - Respects user preference for sound on/off.
+/// - Volume kept optimal to reduce speaker power consumption.
 class AudioService {
   AudioService._internal();
-
   static final AudioService _instance = AudioService._internal();
+  factory AudioService() => _instance;
 
-  factory AudioService() {
-    return _instance;
-  }
-
-  static AudioService get instance => _instance;
-
-  final Map<AppSound, AudioPlayer> _players = <AppSound, AudioPlayer>{};
-  final Map<AppSound, String> _soundPaths = <AppSound, String>{
-    AppSound.appStartup: 'audio/app_startup.mp3',
-    AppSound.buttonClick: 'audio/button_click.mp3',
-    AppSound.buttonHover: 'audio/button_hover.mp3',
-    AppSound.timerStart: 'audio/timer_start.mp3',
-    AppSound.timerTick: 'audio/timer_tick.mp3',
-    AppSound.timerPause: 'audio/timer_pause.mp3',
-    AppSound.timerResume: 'audio/timer_resume.mp3',
-    AppSound.timerComplete: 'audio/timer_complete.mp3',
-    AppSound.alarmRing: 'audio/alarm_ring.mp3',
-    AppSound.alarmSnooze: 'audio/alarm_snooze.mp3',
-    AppSound.rankUp: 'audio/rank_up.mp3',
-    AppSound.notification: 'audio/notification.mp3',
-    AppSound.tabSwitch: 'audio/tab_switch.mp3',
-    AppSound.error: 'audio/error.mp3',
-    AppSound.success: 'audio/success.mp3',
-    AppSound.focusModeOn: 'audio/focus_mode_on.mp3',
-    AppSound.focusModeOff: 'audio/focus_mode_off.mp3',
-  };
-
-  bool _isInitialized = false;
+  AudioPlayer? _player;
   bool _isSoundEnabled = true;
-  double _masterVolume = 1.0;
+  bool _isInitialized = false;
 
-  bool get isInitialized => _isInitialized;
-  bool get isSoundEnabled => _isSoundEnabled;
-  double get masterVolume => _masterVolume;
+  // --- Sound File Paths ---
+  static const String appStartup = 'audio/app_startup.mp3';
+  static const String buttonClick = 'audio/button_click.mp3';
+  static const String buttonHover = 'audio/button_hover.mp3';
+  static const String timerStart = 'audio/timer_start.mp3';
+  static const String timerTick = 'audio/timer_tick.mp3';
+  static const String timerPause = 'audio/timer_pause.mp3';
+  static const String timerResume = 'audio/timer_resume.mp3';
+  static const String timerComplete = 'audio/timer_complete.mp3';
+  static const String alarmRing = 'audio/alarm_ring.mp3';
+  static const String alarmSnooze = 'audio/alarm_snooze.mp3';
+  static const String rankUp = 'audio/rank_up.mp3';
+  static const String notification = 'audio/notification.mp3';
+  static const String tabSwitch = 'audio/tab_switch.mp3';
+  static const String error = 'audio/error.mp3';
+  static const String success = 'audio/success.mp3';
+  static const String focusModeOn = 'audio/focus_mode_on.mp3';
+  static const String focusModeOff = 'audio/focus_mode_off.mp3';
 
+  /// Initialize the audio service.
+  /// Loads user sound preference from SharedPreferences.
   Future<void> initialize() async {
-    if (_isInitialized) {
-      return;
-    }
+    if (_isInitialized) return;
 
     try {
-      for (final AppSound sound in AppSound.values) {
-        final AudioPlayer player = AudioPlayer();
-        player.setReleaseMode(ReleaseMode.stop);
-        await player.setSource(AssetSource(_soundPaths[sound]!));
-        await player.setVolume(_masterVolume);
-        _players[sound] = player;
-      }
-
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      _isSoundEnabled = prefs.getBool(AppConstants.prefSoundEnabled) ?? true;
       _isInitialized = true;
-      debugPrint('AudioService: All sounds pre-loaded successfully.');
     } catch (e) {
-      debugPrint('AudioService: Error during initialization - $e');
-      _isInitialized = false;
+      _isSoundEnabled = true;
+      _isInitialized = true;
     }
   }
 
-  Future<void> play(AppSound sound) async {
-    if (!_isSoundEnabled) {
-      return;
-    }
-
-    if (!_isInitialized) {
-      debugPrint('AudioService: Not initialized. Attempting late init.');
-      await initialize();
-    }
+  /// Play a sound from the asset path.
+  /// Battery Optimization:
+  /// - Creates player only when needed.
+  /// - Stops any currently playing sound before starting new one.
+  /// - Uses low volume (0.7) to reduce speaker power draw.
+  /// - Releases player state after completion.
+  Future<void> play(String assetPath) async {
+    if (!_isSoundEnabled) return;
 
     try {
-      final AudioPlayer? player = _players[sound];
-      if (player == null) {
-        debugPrint('AudioService: No player found for $sound');
-        return;
+      // Stop and release previous player if exists
+      if (_player != null) {
+        await _player!.stop();
+        await _player!.release();
+        _player = null;
       }
 
-      await player.stop();
-      await player.setVolume(_masterVolume);
-      await player.setSource(AssetSource(_soundPaths[sound]!));
-      await player.resume();
+      _player = AudioPlayer();
+      _player!.setReleaseMode(ReleaseMode.stop);
+
+      await _player!.setVolume(0.7);
+      await _player!.play(AssetSource(assetPath));
+
+      // Auto-release after playback completes
+      _player!.onPlayerComplete.listen((_) {
+        _releasePlayer();
+      });
     } catch (e) {
-      debugPrint('AudioService: Error playing $sound - $e');
+      // Silent fail - audio should never crash the app
+      _releasePlayer();
     }
   }
 
-  Future<void> playLooping(AppSound sound) async {
-    if (!_isSoundEnabled) {
-      return;
-    }
-
-    if (!_isInitialized) {
-      await initialize();
-    }
+  /// Play a sound with custom volume.
+  /// Used for subtle sounds like button_hover and tab_switch.
+  Future<void> playWithVolume(String assetPath, double volume) async {
+    if (!_isSoundEnabled) return;
 
     try {
-      final AudioPlayer? player = _players[sound];
-      if (player == null) {
-        return;
+      if (_player != null) {
+        await _player!.stop();
+        await _player!.release();
+        _player = null;
       }
 
-      await player.stop();
-      await player.setReleaseMode(ReleaseMode.loop);
-      await player.setVolume(_masterVolume);
-      await player.setSource(AssetSource(_soundPaths[sound]!));
-      await player.resume();
-    } catch (e) {
-      debugPrint('AudioService: Error looping $sound - $e');
-    }
-  }
-
-  Future<void> stop(AppSound sound) async {
-    try {
-      final AudioPlayer? player = _players[sound];
-      if (player == null) {
-        return;
-      }
-
-      await player.stop();
-      await player.setReleaseMode(ReleaseMode.stop);
-    } catch (e) {
-      debugPrint('AudioService: Error stopping $sound - $e');
-    }
-  }
-
-  Future<void> stopAll() async {
-    try {
-      for (final AudioPlayer player in _players.values) {
-        await player.stop();
-        await player.setReleaseMode(ReleaseMode.stop);
-      }
-    } catch (e) {
-      debugPrint('AudioService: Error stopping all sounds - $e');
-    }
-  }
-
-  Future<void> pause(AppSound sound) async {
-    try {
-      final AudioPlayer? player = _players[sound];
-      if (player == null) {
-        return;
-      }
-
-      await player.pause();
-    } catch (e) {
-      debugPrint('AudioService: Error pausing $sound - $e');
-    }
-  }
-
-  Future<void> setMasterVolume(double volume) async {
-    _masterVolume = volume.clamp(0.0, 1.0);
-
-    try {
-      for (final AudioPlayer player in _players.values) {
-        await player.setVolume(_masterVolume);
-      }
-    } catch (e) {
-      debugPrint('AudioService: Error setting volume - $e');
-    }
-  }
-
-  void setSoundEnabled(bool enabled) {
-    _isSoundEnabled = enabled;
-
-    if (!enabled) {
-      stopAll();
-    }
-
-    debugPrint('AudioService: Sound ${enabled ? "enabled" : "disabled"}.');
-  }
-
-  Future<void> playWithVolume(AppSound sound, double volume) async {
-    if (!_isSoundEnabled) {
-      return;
-    }
-
-    if (!_isInitialized) {
-      await initialize();
-    }
-
-    try {
-      final AudioPlayer? player = _players[sound];
-      if (player == null) {
-        return;
-      }
+      _player = AudioPlayer();
+      _player!.setReleaseMode(ReleaseMode.stop);
 
       final double clampedVolume = volume.clamp(0.0, 1.0);
-      await player.stop();
-      await player.setVolume(clampedVolume);
-      await player.setSource(AssetSource(_soundPaths[sound]!));
-      await player.resume();
+      await _player!.setVolume(clampedVolume);
+      await _player!.play(AssetSource(assetPath));
+
+      _player!.onPlayerComplete.listen((_) {
+        _releasePlayer();
+      });
     } catch (e) {
-      debugPrint('AudioService: Error playing $sound with volume - $e');
+      _releasePlayer();
     }
   }
 
+  /// Play alarm sound in loop mode.
+  /// Used only for alarm_ring.mp3 which needs continuous playback.
+  Future<void> playLoop(String assetPath) async {
+    if (!_isSoundEnabled) return;
+
+    try {
+      if (_player != null) {
+        await _player!.stop();
+        await _player!.release();
+        _player = null;
+      }
+
+      _player = AudioPlayer();
+      _player!.setReleaseMode(ReleaseMode.loop);
+
+      await _player!.setVolume(0.9);
+      await _player!.play(AssetSource(assetPath));
+    } catch (e) {
+      _releasePlayer();
+    }
+  }
+
+  /// Stop any currently playing sound.
+  Future<void> stop() async {
+    try {
+      if (_player != null) {
+        await _player!.stop();
+        _releasePlayer();
+      }
+    } catch (e) {
+      _releasePlayer();
+    }
+  }
+
+  /// Update sound enabled/disabled preference.
+  Future<void> setSoundEnabled(bool enabled) async {
+    _isSoundEnabled = enabled;
+
+    try {
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(AppConstants.prefSoundEnabled, enabled);
+
+      // If sound is disabled, stop any currently playing audio
+      if (!enabled) {
+        await stop();
+      }
+    } catch (e) {
+      // Silent fail
+    }
+  }
+
+  /// Get current sound enabled state.
+  bool get isSoundEnabled => _isSoundEnabled;
+
+  /// Release the player and free memory.
+  void _releasePlayer() {
+    try {
+      _player?.release();
+      _player = null;
+    } catch (e) {
+      _player = null;
+    }
+  }
+
+  /// Dispose the service completely.
+  /// Call this only when the app is being terminated.
   Future<void> dispose() async {
     try {
-      for (final AudioPlayer player in _players.values) {
-        await player.stop();
-        await player.dispose();
+      if (_player != null) {
+        await _player!.stop();
+        await _player!.release();
+        _player = null;
       }
-      _players.clear();
       _isInitialized = false;
-      debugPrint('AudioService: All players disposed.');
     } catch (e) {
-      debugPrint('AudioService: Error during dispose - $e');
+      _player = null;
+      _isInitialized = false;
     }
+  }
+
+  // --- Convenience Methods ---
+  // These make it easy to call specific sounds from anywhere in the app.
+
+  Future<void> playAppStartup() async {
+    await play(appStartup);
+  }
+
+  Future<void> playButtonClick() async {
+    await playWithVolume(buttonClick, 0.6);
+  }
+
+  Future<void> playButtonHover() async {
+    await playWithVolume(buttonHover, 0.3);
+  }
+
+  Future<void> playTimerStart() async {
+    await play(timerStart);
+  }
+
+  Future<void> playTimerTick() async {
+    await playWithVolume(timerTick, 0.4);
+  }
+
+  Future<void> playTimerPause() async {
+    await play(timerPause);
+  }
+
+  Future<void> playTimerResume() async {
+    await play(timerResume);
+  }
+
+  Future<void> playTimerComplete() async {
+    await play(timerComplete);
+  }
+
+  Future<void> playAlarmRing() async {
+    await playLoop(alarmRing);
+  }
+
+  Future<void> playAlarmSnooze() async {
+    await play(alarmSnooze);
+  }
+
+  Future<void> playRankUp() async {
+    await play(rankUp);
+  }
+
+  Future<void> playNotification() async {
+    await playWithVolume(notification, 0.5);
+  }
+
+  Future<void> playTabSwitch() async {
+    await playWithVolume(tabSwitch, 0.3);
+  }
+
+  Future<void> playError() async {
+    await playWithVolume(error, 0.5);
+  }
+
+  Future<void> playSuccess() async {
+    await play(success);
+  }
+
+  Future<void> playFocusModeOn() async {
+    await play(focusModeOn);
+  }
+
+  Future<void> playFocusModeOff() async {
+    await play(focusModeOff);
   }
 }
