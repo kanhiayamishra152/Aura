@@ -1,0 +1,29 @@
+import 'dart:typed_data';
+
+class InstalledAppModel {
+  final String packageName;
+  final String appName;
+  final Uint8List? iconData;
+
+  InstalledAppModel({
+    required this.packageName,
+    required this.appName,
+    this.iconData,
+  });
+
+  factory InstalledAppModel.fromMap(Map<dynamic, dynamic> map) {
+    return InstalledAppModel(
+      packageName: map['packageName'] as String,
+      appName: map['appName'] as String,
+      iconData: map['iconData'] as Uint8List?,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'packageName': packageName,
+      'appName': appName,
+      // We generally do not send iconData back to native, so it's omitted here
+    };
+  }
+}
