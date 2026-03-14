@@ -1,12 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:focus_app/config/app_theme.dart';
-import 'package:focus_app/config/app_routes.dart';
-import 'package:focus_app/core/services/storage_service.dart';
-import 'package:focus_app/core/services/audio_service.dart';
-import 'package:focus_app/core/services/notification_service.dart';
-import 'package:focus_app/core/services/connectivity_service.dart';
-import 'package:focus_app/core/services/database_service.dart'; // Added Import
+import 'package:provider/provider.dart';
+
+import 'config/app_theme.dart';
+import 'config/app_routes.dart';
+
+// Services
+import 'core/services/storage_service.dart';
+import 'core/services/audio_service.dart';
+import 'core/services/notification_service.dart';
+import 'core/services/connectivity_service.dart';
+import 'core/services/database_service.dart';
+import 'core/services/auth_service.dart';
+import 'core/services/task_service.dart';
+import 'core/services/native_bridge_service.dart';
+import 'core/services/gamification_service.dart';
+
+// Providers
+import 'core/providers/auth_provider.dart';
+import 'core/providers/task_provider.dart';
+import 'core/providers/app_blocker_provider.dart';
+import 'core/providers/gamification_provider.dart';
+import 'core/providers/audio_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,13 +56,29 @@ Future<void> main() async {
   final databaseService = DatabaseService();
   await databaseService.database; // Force initialization
 
+  // Initialize New Feature Services
+  final authService = AuthService();
+  final taskService = TaskService(databaseService);
+  final nativeBridgeService = NativeBridgeService();
+  final gamificationService = GamificationService(); // Assumed pre-existing implementation
+
   runApp(
-    FocusApp(
-      storageService: storageService,
-      audioService: audioService,
-      notificationService: notificationService,
-      connectivityService: connectivityService,
-      databaseService: databaseService, // Passed to app
+    // Wrapping the entire app in MultiProvider for State Management
+    MultiProvider(
+      providers:[
+        ChangeNotifierProvider(create: (_) => AuthProvider(authService)),
+        ChangeNotifierProvider(create: (_) => TaskProvider(taskService)),
+        ChangeNotifierProvider(create: (_) => GamificationProvider(gamificationService)),
+        ChangeNotifierProvider(create: (_) => AppBlockerProvider(nativeBridgeService, databaseService)),
+        ChangeNotifierProvider(create: (_) => AudioProvider(audioService)),
+      ],
+      child: FocusApp(
+        storageService: storageService,
+        audioService: audioService,
+        notificationService: notificationService,
+        connectivityService: connectivityService,
+        databaseService: databaseService,
+      ),
     ),
   );
 }
@@ -57,10 +88,10 @@ class FocusApp extends StatefulWidget {
   final AudioService audioService;
   final NotificationService notificationService;
   final ConnectivityService connectivityService;
-  final DatabaseService databaseService; // Added Property
+  final DatabaseService databaseService;
 
   const FocusApp({
-    super.key, // Removed 'const' from constructor call in runApp, but kept here for the widget itself if needed
+    super.key,
     required this.storageService,
     required this.audioService,
     required this.notificationService,
@@ -104,7 +135,8 @@ class _FocusAppState extends State<FocusApp> with WidgetsBindingObserver {
       case AppLifecycleState.detached:
       case AppLifecycleState.hidden:
         _isAppInForeground = false;
-        widget.audioService.releaseAll();
+        // Commenting out releaseAll() temporarily so focus music can play in background if needed
+        // widget.audioService.releaseAll(); 
         break;
     }
   }
@@ -170,7 +202,7 @@ class _FocusAppState extends State<FocusApp> with WidgetsBindingObserver {
       themeMode: _themeMode,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      initialRoute: AppRoutes.splash,
+      initialRoute: AppRoutes.splash, // Starts at Splash Screen for Auth routing
       onGenerateRoute: AppRoutes.generateRoute,
     );
   }
