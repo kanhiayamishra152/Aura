@@ -12,6 +12,8 @@ dependencies:
 
   # --- State Management ---
   provider: ^6.1.2
+    # --- Android Intent (For Onboarding Permissions) ---
+  android_intent_plus: ^5.0.2
 
   # --- Audio ---
   audioplayers: ^6.1.0
