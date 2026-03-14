@@ -33,10 +33,9 @@ class _ClockScreenState extends State<ClockScreen> with SingleTickerProviderStat
       appBar: AppBar(
         backgroundColor: AppColors.surfaceBlack,
         elevation: 0,
-        title: TabBar(
+        bottom: TabBar(
           controller: _tabController,
           indicatorColor: AppColors.accentGreen,
-          indicatorSize: TabBarIndicatorSize.label,
           tabs: const [
             Tab(text: "ALARMS"),
             Tab(text: "CLOCK"),
@@ -56,74 +55,26 @@ class _ClockScreenState extends State<ClockScreen> with SingleTickerProviderStat
   }
 
   Widget _buildAlarmsTab() {
-    // Mock data for demonstration
-    final alarms = [
-      AlarmModel(id: 1, time: "06:00", label: "Wake Up", repeatDays: [1,2,3,4,5], isActive: true),
-      AlarmModel(id: 2, time: "08:30", label: "Workout", repeatDays: [], isActive: false),
-    ];
-
     return ListView.builder(
-      itemCount: alarms.length + 1, // +1 for add button
+      itemCount: 1,
       itemBuilder: (context, index) {
-        if (index == alarms.length) {
-          return Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.surfaceBlack,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              ),
-              onPressed: () {
-                // Add alarm logic
-              },
-              icon: const Icon(Icons.add, color: AppColors.accentGreen),
-              label: const Text("Add Alarm", style: TextStyle(color: Colors.white)),
-            ),
-          );
-        }
-        return AlarmTile(
-          alarm: alarms[index],
-          onTap: () {},
-          onToggle: () {},
-          onDelete: () {},
-        );
+         return AlarmTile(
+           alarm: AlarmModel(id: 1, time: "08:00", label: "Wake Up", repeatDays: []),
+           onTap: () {},
+           onToggle: () {},
+           onDelete: () {},
+         );
       },
     );
   }
 
   Widget _buildClockTab() {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          StreamBuilder(
-            stream: Stream.periodic(const Duration(seconds: 1)),
-            builder: (context, snapshot) {
-              final now = DateTime.now();
-              return Text(
-                "${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}",
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 64,
-                  fontWeight: FontWeight.w200,
-                ),
-              );
-            },
-          ),
-          const SizedBox(height: 8),
-          Text(
-            "${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}",
-            style: TextStyle(color: Colors.grey[500], fontSize: 18),
-          ),
-        ],
-      ),
+      child: Text("Clock", style: TextStyle(color: Colors.white)),
     );
   }
 
   Widget _buildStopwatchTab() {
-    return const Padding(
-      padding: EdgeInsets.all(16.0),
-      child: StopwatchWidget(),
-    );
+    return const StopwatchWidget();
   }
 }
