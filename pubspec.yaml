@@ -28,10 +28,7 @@ dependencies:
   # --- Connectivity ---
   connectivity_plus: ^6.1.1
 
-  # --- Firebase (Authentication and Firestore for Leaderboard Sync) ---
-  firebase_core: ^3.8.1
-  firebase_auth: ^5.4.1
-  cloud_firestore: ^5.6.1
+  
 
   # --- YouTube Player for Study Tube ---
   youtube_player_flutter: ^9.1.1
