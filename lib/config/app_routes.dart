@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:focus_app/ui/screens/splash_screen.dart';
 import 'package:focus_app/ui/screens/main_navigation_screen.dart';
