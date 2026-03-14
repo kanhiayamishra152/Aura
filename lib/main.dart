@@ -6,6 +6,7 @@ import 'package:focus_app/core/services/storage_service.dart';
 import 'package:focus_app/core/services/audio_service.dart';
 import 'package:focus_app/core/services/notification_service.dart';
 import 'package:focus_app/core/services/connectivity_service.dart';
+import 'package:focus_app/core/services/database_service.dart'; // Added Import
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,6 +25,7 @@ Future<void> main() async {
     ),
   );
 
+  // Initialize Core Services
   final storageService = StorageService();
   await storageService.initialize();
 
@@ -35,12 +37,17 @@ Future<void> main() async {
 
   final audioService = AudioService();
 
+  // Initialize Database Service (Crucial for new features)
+  final databaseService = DatabaseService();
+  await databaseService.database; // Force initialization
+
   runApp(
     FocusApp(
       storageService: storageService,
       audioService: audioService,
       notificationService: notificationService,
       connectivityService: connectivityService,
+      databaseService: databaseService, // Passed to app
     ),
   );
 }
@@ -50,13 +57,15 @@ class FocusApp extends StatefulWidget {
   final AudioService audioService;
   final NotificationService notificationService;
   final ConnectivityService connectivityService;
+  final DatabaseService databaseService; // Added Property
 
   const FocusApp({
-    super.key,
+    super.key, // Removed 'const' from constructor call in runApp, but kept here for the widget itself if needed
     required this.storageService,
     required this.audioService,
     required this.notificationService,
     required this.connectivityService,
+    required this.databaseService,
   });
 
   @override
