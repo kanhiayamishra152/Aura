@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
-import '../screens/splash/splash_screen.dart';
-import '../screens/auth/login_screen.dart';
-import '../screens/auth/register_screen.dart';
-import '../screens/home/home_screen.dart';
-import '../screens/timer/timer_screen.dart';
-import '../screens/focus/focus_mode_screen.dart';
-import '../screens/study_tube/study_tube_screen.dart';
-import '../screens/leaderboard/leaderboard_screen.dart';
-import '../screens/clock/clock_screen.dart';
-import '../screens/profile/profile_screen.dart';
-import '../screens/settings/settings_screen.dart';
+import 'package:focus_app/ui/screens/splash_screen.dart';
+import 'package:focus_app/ui/screens/main_navigation_screen.dart';
+import 'package:focus_app/ui/screens/timer_screen.dart';
+import 'package:focus_app/ui/screens/focus_mode_screen.dart';
+import 'package:focus_app/ui/screens/study_tube_screen.dart';
+import 'package:focus_app/ui/screens/leaderboard_screen.dart';
+import 'package:focus_app/ui/screens/clock_screen.dart';
+import 'package:focus_app/ui/screens/profile_screen.dart';
+import 'package:focus_app/ui/screens/settings_screen.dart';
+import 'package:focus_app/ui/screens/dashboard_screen.dart';
 import 'app_constants.dart';
 
 class AppRoutes {
@@ -17,9 +16,7 @@ class AppRoutes {
 
   // --- Route Names ---
   static const String splash = '/';
-  static const String login = '/login';
-  static const String register = '/register';
-  static const String home = '/home';
+  static const String main = '/main'; // Changed from home to main
   static const String timer = '/timer';
   static const String focusMode = '/focus-mode';
   static const String studyTube = '/study-tube';
@@ -37,21 +34,9 @@ class AppRoutes {
           routeSettings,
         );
 
-      case login:
+      case main:
         return _buildPageRoute(
-          const LoginScreen(),
-          routeSettings,
-        );
-
-      case register:
-        return _buildPageRoute(
-          const RegisterScreen(),
-          routeSettings,
-        );
-
-      case home:
-        return _buildPageRoute(
-          const HomeScreen(),
+          const MainNavigationScreen(),
           routeSettings,
         );
 
@@ -100,10 +85,11 @@ class AppRoutes {
       default:
         return _buildPageRoute(
           const Scaffold(
+            backgroundColor: Color(0xFF000000),
             body: Center(
               child: Text(
                 'Route not found',
-                style: TextStyle(fontSize: 18),
+                style: TextStyle(fontSize: 18, color: Colors.white),
               ),
             ),
           ),
@@ -112,9 +98,7 @@ class AppRoutes {
     }
   }
 
-  // --- Premium Page Transition with Battery Optimization ---
-  // Uses lightweight curve-based animation instead of heavy physics
-  // Duration kept short to reduce GPU frame rendering time
+  // --- Premium Page Transition ---
   static PageRouteBuilder<dynamic> _buildPageRoute(
     Widget page,
     RouteSettings routeSettings,
