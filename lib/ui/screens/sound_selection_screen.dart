@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../config/app_colors.dart';
-import '../../core/services/audio_service.dart'; // Assuming this exists from initial files
+import '../../core/services/audio_service.dart';
 
 class SoundSelectionScreen extends StatefulWidget {
   const SoundSelectionScreen({Key? key}) : super(key: key);
@@ -10,24 +10,22 @@ class SoundSelectionScreen extends StatefulWidget {
 }
 
 class _SoundSelectionScreenState extends State<SoundSelectionScreen> {
-  // Note: Ideally, this should be fetched from a provider or service.
-  // Using a mock list for demonstration.
+  // FIXED: Paths updated to 'assets/audio/' to match your folder
   final List<SoundItem> _sounds = [
-    SoundItem(id: 'rain', name: 'Heavy Rain', icon: Icons.water_drop_outlined, assetPath: 'assets/sounds/rain.mp3'),
-    SoundItem(id: 'forest', name: 'Forest Birds', icon: Icons.forest_outlined, assetPath: 'assets/sounds/forest.mp3'),
-    SoundItem(id: 'lofi', name: 'Lo-Fi Beats', icon: Icons.music_note_outlined, assetPath: 'assets/sounds/lofi.mp3'),
-    SoundItem(id: 'ocean', name: 'Ocean Waves', icon: Icons.waves_outlined, assetPath: 'assets/sounds/ocean.mp3'),
-    SoundItem(id: 'fire', name: 'Campfire', icon: Icons.local_fire_department_outlined, assetPath: 'assets/sounds/fire.mp3'),
-    SoundItem(id: 'white_noise', name: 'White Noise', icon: Icons.blur_on_outlined, assetPath: 'assets/sounds/white_noise.mp3'),
+    SoundItem(id: 'rain', name: 'Heavy Rain', icon: Icons.water_drop_outlined, assetPath: 'assets/audio/rain.mp3'),
+    SoundItem(id: 'forest', name: 'Forest Birds', icon: Icons.forest_outlined, assetPath: 'assets/audio/forest.mp3'),
+    SoundItem(id: 'lofi', name: 'Lo-Fi Beats', icon: Icons.music_note_outlined, assetPath: 'assets/audio/lofi.mp3'),
+    SoundItem(id: 'ocean', name: 'Ocean Waves', icon: Icons.waves_outlined, assetPath: 'assets/audio/ocean.mp3'),
+    SoundItem(id: 'fire', name: 'Campfire', icon: Icons.local_fire_department_outlined, assetPath: 'assets/audio/fire.mp3'),
+    SoundItem(id: 'white_noise', name: 'White Noise', icon: Icons.blur_on_outlined, assetPath: 'assets/audio/white_noise.mp3'),
   ];
 
   String? _selectedSoundId;
-  final AudioService _audioService = AudioService(); // Assuming instantiation is allowed or GetIt
+  final AudioService _audioService = AudioService();
 
   @override
   void initState() {
     super.initState();
-    // Load currently selected sound from preferences if needed
     _selectedSoundId = 'rain'; // Default
   }
 
@@ -37,10 +35,6 @@ class _SoundSelectionScreenState extends State<SoundSelectionScreen> {
     setState(() {
       _selectedSoundId = id;
     });
-
-    // Play preview
-    // Note: AudioService implementation details would go here
-    // _audioService.playBackgroundSound(id);
     
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -140,7 +134,6 @@ class _SoundSelectionScreenState extends State<SoundSelectionScreen> {
   }
 }
 
-// Model class for sound items
 class SoundItem {
   final String id;
   final String name;
