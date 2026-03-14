@@ -1,283 +1,295 @@
 import 'package:flutter/material.dart';
-import '../../config/app_colors.dart';
-import '../../core/services/database_service.dart';
-import '../../core/services/gamification_service.dart';
-import '../../core/services/analytics_service.dart';
-import '../widgets/premium_glass_card.dart';
+import 'package:provider/provider.dart';
+import '../../core/providers/auth_provider.dart';
+import '../widgets/premium_dialog.dart';
 
-class ProfileScreen extends StatefulWidget {
+class ProfileScreen extends StatelessWidget {
   const ProfileScreen({Key? key}) : super(key: key);
 
-  @override
-  _ProfileScreenState createState() => _ProfileScreenState();
-}
-
-class _ProfileScreenState extends State<ProfileScreen> {
-  final DatabaseService _dbService = DatabaseService();
-  late final GamificationService _gamificationService;
-  late final AnalyticsService _analyticsService;
-
-  int _totalScore = 0;
-  int _totalTimeFocused = 0;
-  int _userLevel = 1;
-  double _levelProgress = 0.0;
-  String _peakTime = "Loading...";
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _gamificationService = GamificationService(_dbService);
-    _analyticsService = AnalyticsService(_dbService);
-    _loadUserData();
-  }
-
-  Future<void> _loadUserData() async {
-    try {
-      // Fetch leaderboard data
-      final entry = await _dbService.getLocalLeaderboardEntry();
-      
-      // Fetch analytics
-      final peak = await _analyticsService.getPeakProductivityTime();
-
-      if (mounted) {
-        setState(() {
-          if (entry != null) {
-            _totalScore = entry.score;
-            _totalTimeFocused = entry.totalTimeFocused;
-            _userLevel = _gamificationService.getUserLevel(_totalScore);
-            _levelProgress = _gamificationService.getLevelProgress(_totalScore);
-          }
-          _peakTime = peak;
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
-  }
-
-  String _formatTime(int seconds) {
-    int hours = seconds ~/ 3600;
-    int minutes = (seconds % 3600) ~/ 60;
-    return "${hours}h ${minutes}m";
+  void _handleLogout(BuildContext context) {
+    PremiumDialog.show(
+      context,
+      title: 'End Session?',
+      message: 'Are you sure you want to log out of your account?',
+      primaryButtonText: 'Logout',
+      secondaryButtonText: 'Cancel',
+      isDestructive: true,
+      onPrimaryPressed: () async {
+        Navigator.pop(context); // Close dialog
+        await context.read<AuthProvider>().logout();
+        if (context.mounted) {
+          Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+        }
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.backgroundBlack,
-      appBar: AppBar(
-        title: const Text("My Profile", style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: AppColors.surfaceBlack,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings_outlined, color: Colors.white70),
-            onPressed: () {
-              // Navigate to settings
-            },
-          )
-        ],
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.accentGreen))
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                children: [
-                  // Profile Header
-                  _buildProfileHeader(),
-                  const SizedBox(height: 24),
+    // Hardcoded stats for structural display; integrate GamificationProvider/AnalyticsService here.
+    const int userLevel = 14;
+    const int currentXp = 8500;
+    const int targetXp = 10000;
+    final double xpProgress = currentXp / targetXp;
 
-                  // Level Progress Card
-                  _buildLevelProgressCard(),
-                  const SizedBox(height: 24),
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
+        slivers:[
+          SliverAppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            pinned: true,
+            expandedHeight: 80.0,
+            actions:[
+              IconButton(
+                icon: const Icon(Icons.settings_outlined, color: Colors.white),
+                onPressed: () => Navigator.pushNamed(context, '/settings'),
+              ),
+              const SizedBox(width: 8.0),
+            ],
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children:[
+                  Container(
+                    height: 100.0,
+                    width: 100.0,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: const Color(0xFF39FF14),
+                        width: 2.0,
+                      ),
+                      image: const DecorationImage(
+                        image: NetworkImage('https://i.pravatar.cc/300'), // Replace with local asset or network image
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16.0),
+                  const Text(
+                    'Focus Master',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 24.0,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 4.0),
+                  const Text(
+                    'focus@example.com',
+                    style: TextStyle(
+                      color: Color(0xFF777777),
+                      fontSize: 14.0,
+                    ),
+                  ),
+                  const SizedBox(height: 32.0),
+                  
+                  // Level & XP Bar
+                  Container(
+                    padding: const EdgeInsets.all(20.0),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF121212),
+                      borderRadius: BorderRadius.circular(20.0),
+                      border: Border.all(
+                        color: const Color(0xFF333333),
+                        width: 1.0,
+                      ),
+                    ),
+                    child: Column(
+                      children:[
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children:[
+                            const Text(
+                              'LEVEL 14',
+                              style: TextStyle(
+                                color: Color(0xFF39FF14),
+                                fontSize: 16.0,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 1.0,
+                              ),
+                            ),
+                            Text(
+                              '$currentXp / $targetXp XP',
+                              style: const TextStyle(
+                                color: Color(0xFF888888),
+                                fontSize: 12.0,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16.0),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8.0),
+                          child: LinearProgressIndicator(
+                            value: xpProgress,
+                            backgroundColor: const Color(0xFF222222),
+                            valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF39FF14)),
+                            minHeight: 8.0,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24.0),
 
                   // Stats Grid
-                  _buildStatsGrid(),
-                  const SizedBox(height: 24),
+                  Row(
+                    children:[
+                      Expanded(
+                        child: _buildStatCard(
+                          icon: Icons.local_fire_department_rounded,
+                          title: '12 Days',
+                          subtitle: 'Current Streak',
+                        ),
+                      ),
+                      const SizedBox(width: 16.0),
+                      Expanded(
+                        child: _buildStatCard(
+                          icon: Icons.timer_rounded,
+                          title: '48h',
+                          subtitle: 'Total Focus',
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16.0),
+                  Row(
+                    children:[
+                      Expanded(
+                        child: _buildStatCard(
+                          icon: Icons.task_alt_rounded,
+                          title: '142',
+                          subtitle: 'Tasks Done',
+                        ),
+                      ),
+                      const SizedBox(width: 16.0),
+                      Expanded(
+                        child: _buildStatCard(
+                          icon: Icons.shield_rounded,
+                          title: '85',
+                          subtitle: 'Distractions Blocked',
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 48.0),
 
-                  // Productivity Insights
-                  _buildInsightsCard(),
+                  // Actions
+                  _buildActionTile(
+                    icon: Icons.leaderboard_rounded,
+                    title: 'Leaderboard Ranking',
+                    onTap: () => Navigator.pushNamed(context, '/leaderboard'),
+                  ),
+                  _buildActionTile(
+                    icon: Icons.music_note_rounded,
+                    title: 'Soundscapes & Alarms',
+                    onTap: () => Navigator.pushNamed(context, '/sounds'),
+                  ),
+                  _buildActionTile(
+                    icon: Icons.logout_rounded,
+                    title: 'Log Out',
+                    isDestructive: true,
+                    onTap: () => _handleLogout(context),
+                  ),
+                  const SizedBox(height: 100.0), // Padding for bottom nav
                 ],
               ),
             ),
-    );
-  }
-
-  Widget _buildProfileHeader() {
-    return Center(
-      child: Column(
-        children: [
-          Container(
-            width: 100,
-            height: 100,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                colors: [Colors.grey[800]!, AppColors.surfaceBlack],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              border: Border.all(color: AppColors.accentGreen, width: 2),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.accentGreen.withOpacity(0.2),
-                  blurRadius: 20,
-                ),
-              ],
-            ),
-            child: const Icon(
-              Icons.person,
-              size: 50,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            "Level $_userLevel Achiever",
-            style: const TextStyle(
-              color: AppColors.accentGreen,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildLevelProgressCard() {
-    return PremiumGlassCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                "Experience Points",
-                style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
-              ),
-              Text(
-                "$_totalScore XP",
-                style: const TextStyle(color: AppColors.accentGreen, fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          // Progress Bar
-          Stack(
-            children: [
-              Container(
-                height: 8,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: Colors.grey[800],
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
-              FractionallySizedBox(
-                widthFactor: _levelProgress.clamp(0.0, 1.0),
-                child: Container(
-                  height: 8,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [AppColors.accentGreen, Color(0xFF69F0AE)],
-                    ),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerRight,
-            child: Text(
-              "${(_levelProgress * 100).toStringAsFixed(0)}% to Level ${_userLevel + 1}",
-              style: TextStyle(color: Colors.grey[500], fontSize: 12),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatsGrid() {
-    return GridView.count(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 2,
-      crossAxisSpacing: 12,
-      mainAxisSpacing: 12,
-      childAspectRatio: 1.5,
-      children: [
-        _buildStatCard("Total Focus", _formatTime(_totalTimeFocused), Icons.timer),
-        _buildStatCard("Sessions", "N/A", Icons.history), // Fetch count from DB if needed
-        _buildStatCard("Peak Time", _peakTime, Icons.access_time),
-        _buildStatCard("Rank", "Top 100", Icons.leaderboard),
-      ],
-    );
-  }
-
-  Widget _buildStatCard(String title, String value, IconData icon) {
+  Widget _buildStatCard({required IconData icon, required String title, required String subtitle}) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20.0),
       decoration: BoxDecoration(
-        color: AppColors.surfaceBlack,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey[850]!),
+        color: const Color(0xFF121212),
+        borderRadius: BorderRadius.circular(20.0),
+        border: Border.all(
+          color: const Color(0xFF333333),
+          width: 1.0,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: Colors.grey[600], size: 20),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-          ),
+        children:[
+          Icon(icon, color: const Color(0xFF39FF14), size: 28.0),
+          const SizedBox(height: 16.0),
           Text(
             title,
-            style: TextStyle(color: Colors.grey[500], fontSize: 12),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 22.0,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 4.0),
+          Text(
+            subtitle,
+            style: const TextStyle(
+              color: Color(0xFF777777),
+              fontSize: 12.0,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildInsightsCard() {
-    return PremiumGlassCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            "Productivity Insights",
-            style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+  Widget _buildActionTile({
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+    bool isDestructive = false,
+  }) {
+    final color = isDestructive ? Colors.redAccent : Colors.white;
+
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 20.0),
+        decoration: const BoxDecoration(
+          border: Border(
+            bottom: BorderSide(
+              color: Color(0xFF222222),
+              width: 1.0,
+            ),
           ),
-          const SizedBox(height: 16),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppColors.accentGreen.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children:[
+            Icon(icon, color: color, size: 24.0),
+            const SizedBox(width: 16.0),
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 16.0,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-              child: const Icon(Icons.lightbulb_outline, color: AppColors.accentGreen),
             ),
-            title: const Text("Keep it up!", style: TextStyle(color: Colors.white)),
-            subtitle: Text(
-              "You focused ${_totalTimeFocused ~/ 60} minutes today.",
-              style: TextStyle(color: Colors.grey[400]),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: isDestructive ? Colors.transparent : const Color(0xFF555555),
+              size: 24.0,
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
